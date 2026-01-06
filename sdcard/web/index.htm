@@ -843,6 +843,7 @@
             margin: 10px 0;
             cursor: pointer;
             user-select: none;
+            position: relative;
         }
 
         .model-section-header:hover {
@@ -852,6 +853,17 @@
         .model-section-title {
             font-weight: 600;
             font-size: 1rem;
+        }
+
+        /* 覆盖模型日志折叠图标的定位，使其在flex布局中正常工作 */
+        .model-section-header .collapse-icon {
+            position: static;
+            transform: none;
+            transition: transform 0.3s ease;
+        }
+
+        .model-section-header .collapse-icon.collapsed {
+            transform: rotate(-90deg);
         }
 
         /* 版权信息样式 */
@@ -912,6 +924,96 @@
 
     <div class="container">
         <div class="main-panel">
+
+            <!-- 模型状态监控部分 -->
+            <div class="system-section">
+                <div class="system-header collapsible-header" onclick="toggleSection('model-section')">
+                    <div>
+                        <h2 data-translate="model-monitoring">模型状态监控</h2>
+                        <p data-translate="model-status-desc">模型加载进度和运行日志监控</p>
+                    </div>
+                    <span class="collapse-icon" id="model-section-icon">▼</span>
+                </div>
+            
+                <div class="collapsible-content" id="model-section">
+                    <div class="dashboard">
+                        <!-- 模型拉起状态 -->
+                        <div class="card" style="grid-column: 1 / -1;">
+                            <div class="card-header">
+                                <div class="card-icon"> </div>
+                                <div class="card-title" data-translate="model-loading-status">模型拉起状态</div>
+                            </div>
+                            <div id="modelLoadingContent">
+                                <!-- 主模型 -->
+                                <div style="margin-bottom: 20px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-weight: 500; color: #555;" data-translate="main-model">主模型</span>
+                                    </div>
+                                    <div class="model-status-progress">
+                                        <div class="model-status-progress-fill" id="llm-progress" style="width: 0%;">
+                                            <span class="model-status-text" id="llm-status-text">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 嵌入模型 -->
+                                <div style="margin-bottom: 20px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-weight: 500; color: #555;" data-translate="embedding-model">嵌入模型</span>
+                                    </div>
+                                    <div class="model-status-progress">
+                                        <div class="model-status-progress-fill" id="embedding-progress" style="width: 0%;">
+                                            <span class="model-status-text" id="embedding-status-text">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 重排模型 -->
+                                <div style="margin-bottom: 20px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-weight: 500; color: #555;" data-translate="reranker-model">重排模型</span>
+                                    </div>
+                                    <div class="model-status-progress">
+                                        <div class="model-status-progress-fill" id="reranker-progress" style="width: 0%;">
+                                            <span class="model-status-text" id="reranker-status-text">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模型运行日志 -->
+                        <div class="card" style="grid-column: 1 / -1;">
+                            <div class="card-header">
+                                <div class="card-icon"> </div>
+                                <div class="card-title" data-translate="model-runtime-logs">模型运行日志</div>
+                            </div>
+                            <div id="modelLogsContent">
+                                <!-- 主模型日志 -->
+                                <div class="model-section-header" onclick="toggleModelLog('llm')">
+                                    <span class="model-section-title" data-translate="main-model">主模型</span>
+                                    <span class="collapse-icon collapsed" id="llm-log-icon">▼</span>
+                                </div>
+                                <div class="model-log-window" id="llm-log-window"></div>
+
+                                <!-- 嵌入模型日志 -->
+                                <div class="model-section-header" onclick="toggleModelLog('embedding')">
+                                    <span class="model-section-title" data-translate="embedding-model">嵌入模型</span>
+                                    <span class="collapse-icon collapsed" id="embedding-log-icon">▼</span>
+                                </div>
+                                <div class="model-log-window" id="embedding-log-window"></div>
+
+                                <!-- 重排模型日志 -->
+                                <div class="model-section-header" onclick="toggleModelLog('reranker')">
+                                    <span class="model-section-title" data-translate="reranker-model">重排模型</span>
+                                    <span class="collapse-icon collapsed" id="reranker-log-icon">▼</span>
+                                </div>
+                                <div class="model-log-window" id="reranker-log-window"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- 推理服务器 监控部分 -->
             <div class="system-section">
@@ -1098,97 +1200,6 @@
             </div>
             </div>
         </div>
-        </div>
-
-            <!-- 模型状态监控部分 -->
-            <div class="system-section">
-                <div class="system-header collapsible-header" onclick="toggleSection('model-section')">
-                    <div>
-                        <h2 data-translate="model-monitoring">模型状态监控</h2>
-                        <p data-translate="model-status-desc">推理模型加载和运行状态</p>
-                    </div>
-                    <span class="collapse-icon" id="model-section-icon">▼</span>
-                </div>
-            
-            <div class="collapsible-content" id="model-section">
-            <div class="dashboard">
-                <!-- 模型拉起状态 -->
-                <div class="card" style="grid-column: 1 / -1;">
-                    <div class="card-header">
-                        <div class="card-icon">🚀</div>
-                        <div class="card-title" data-translate="model-loading-status">模型拉起状态</div>
-                    </div>
-                    <div id="modelLoadingContent">
-                        <!-- 主模型 -->
-                        <div style="margin-bottom: 20px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span style="font-weight: 500; color: #555;" data-translate="main-model">主模型</span>
-                            </div>
-                            <div class="model-status-progress">
-                                <div class="model-status-progress-fill" id="llm-progress" style="width: 0%;">
-                                    <span class="model-status-text" id="llm-status-text">--</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 嵌入模型 -->
-                        <div style="margin-bottom: 20px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span style="font-weight: 500; color: #555;" data-translate="embedding-model">嵌入模型</span>
-                            </div>
-                            <div class="model-status-progress">
-                                <div class="model-status-progress-fill" id="embedding-progress" style="width: 0%;">
-                                    <span class="model-status-text" id="embedding-status-text">--</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 重排模型 -->
-                        <div style="margin-bottom: 20px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span style="font-weight: 500; color: #555;" data-translate="reranker-model">重排模型</span>
-                            </div>
-                            <div class="model-status-progress">
-                                <div class="model-status-progress-fill" id="reranker-progress" style="width: 0%;">
-                                    <span class="model-status-text" id="reranker-status-text">--</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 模型运行日志 -->
-                <div class="card" style="grid-column: 1 / -1;">
-                    <div class="card-header">
-                        <div class="card-icon">📝</div>
-                        <div class="card-title" data-translate="model-runtime-logs">模型运行日志</div>
-                    </div>
-                    <div id="modelLogsContent">
-                        <!-- 主模型日志 -->
-                        <div class="model-section-header" onclick="toggleModelLog('llm')">
-                            <span class="model-section-title" data-translate="main-model">主模型</span>
-                            <span class="collapse-icon collapsed" id="llm-log-icon">▼</span>
-                        </div>
-                        <div class="model-log-window" id="llm-log-window"></div>
-
-                        <!-- 嵌入模型日志 -->
-                        <div class="model-section-header" onclick="toggleModelLog('embedding')">
-                            <span class="model-section-title" data-translate="embedding-model">嵌入模型</span>
-                            <span class="collapse-icon collapsed" id="embedding-log-icon">▼</span>
-                        </div>
-                        <div class="model-log-window" id="embedding-log-window"></div>
-
-                        <!-- 重排模型日志 -->
-                        <div class="model-section-header" onclick="toggleModelLog('reranker')">
-                            <span class="model-section-title" data-translate="reranker-model">重排模型</span>
-                            <span class="collapse-icon collapsed" id="reranker-log-icon">▼</span>
-                        </div>
-                        <div class="model-log-window" id="reranker-log-window"></div>
-                    </div>
-                </div>
-            </div>
-            </div>
-            </div>
 
         </div>
     </div>
@@ -2272,7 +2283,7 @@
                 'no-gpu-data': 'No GPU Data Available',
                 'no-memory-data': 'No Memory Data Available',
                 'model-monitoring': 'Model Status Monitor',
-                'model-status-desc': 'Inference Model Loading and Runtime Status',
+                'model-status-desc': 'Model Loading Progress and Runtime Logs',
                 'model-loading-status': 'Model Loading Status',
                 'model-runtime-logs': 'Model Runtime Logs',
                 'main-model': 'Main Model',
