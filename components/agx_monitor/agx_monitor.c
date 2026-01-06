@@ -46,8 +46,9 @@ typedef struct {
   esp_websocket_client_handle_t ws_client; ///< WebSocket client handle
 
   // Data storage
-  agx_monitor_data_t latest_data; ///< Latest monitoring data
-  SemaphoreHandle_t data_mutex;   ///< Data access mutex
+  agx_monitor_data_t latest_data;         ///< Latest monitoring data
+  agx_model_monitor_data_t latest_model_data; ///< Latest model monitoring data
+  SemaphoreHandle_t data_mutex;           ///< Data access mutex
 
   // Task management
   TaskHandle_t monitor_task_handle;   ///< Monitor task handle
@@ -103,6 +104,9 @@ static esp_err_t agx_monitor_parse_power_data(cJSON *power_json,
                                               agx_monitor_data_t *data);
 static esp_err_t agx_monitor_parse_gpu_data(cJSON *gpu_json,
                                             agx_monitor_data_t *data);
+static esp_err_t agx_monitor_parse_model_data(const char *json_data, size_t data_len);
+static esp_err_t agx_monitor_parse_model_status(cJSON *model_json,
+                                                agx_model_status_t *status);
 
 // Utility functions
 static void agx_monitor_update_status(agx_monitor_status_t new_status);
@@ -210,9 +214,11 @@ esp_err_t agx_monitor_init(const agx_monitor_config_t *config) {
     return ESP_ERR_NO_MEM;
   }
 
-  // Initialize data structure
+  // Initialize data structures
   memset(&s_agx_monitor.latest_data, 0, sizeof(agx_monitor_data_t));
   s_agx_monitor.latest_data.is_valid = false;
+  memset(&s_agx_monitor.latest_model_data, 0, sizeof(agx_model_monitor_data_t));
+  s_agx_monitor.latest_model_data.is_valid = false;
 
   // Initialize status and timing
   s_agx_monitor.connection_status = AGX_MONITOR_STATUS_INITIALIZED;
@@ -1010,7 +1016,7 @@ static void agx_monitor_websocket_event_handler(void *handler_args,
             ESP_LOGD(TAG, "Found JSON array start: %s", json_start);
 
             // Find the event name and data
-            // Expected format: 42["tegrastats_update",{data}]
+            // Expected format: 42["tegrastats_update",{data}] or 42["model_status_update",{data}]
             if (strstr(json_start, "tegrastats_update")) {
               ESP_LOGD(TAG, "*** TEGRASTATS_UPDATE EVENT DETECTED ***");
 
@@ -1045,9 +1051,38 @@ static void agx_monitor_websocket_event_handler(void *handler_args,
               } else {
                 ESP_LOGW(TAG, "Could not find JSON object start");
               }
+            } else if (strstr(json_start, "model_status_update")) {
+              ESP_LOGD(TAG, "*** MODEL_STATUS_UPDATE EVENT DETECTED ***");
+
+              const char *data_start = strchr(json_start, '{');
+              if (data_start) {
+                // Find the end of the JSON object
+                const char *data_end = strrchr(message, '}');
+                if (data_end) {
+                  size_t json_len = data_end - data_start + 1;
+
+                  ESP_LOGD(TAG, "=== MODEL STATUS JSON DATA ===");
+                  ESP_LOGD(TAG, "JSON Length: %zu bytes", json_len);
+                  ESP_LOGD(TAG, "JSON Content: %.*s", (int)json_len,
+                           data_start);
+                  ESP_LOGD(TAG, "==============================");
+
+                  esp_err_t parse_ret =
+                      agx_monitor_parse_model_data(data_start, json_len);
+                  if (parse_ret == ESP_OK) {
+                    ESP_LOGD(TAG, "✅ Processed model status data");
+                  } else {
+                    ESP_LOGW(TAG, "❌ Failed to parse model status data: %s",
+                             esp_err_to_name(parse_ret));
+                  }
+                } else {
+                  ESP_LOGW(TAG, "Could not find JSON object end");
+                }
+              } else {
+                ESP_LOGW(TAG, "Could not find JSON object start");
+              }
             } else {
-              ESP_LOGD(TAG, "Socket.IO event (not tegrastats_update): %s",
-                       json_start);
+              ESP_LOGD(TAG, "Socket.IO event (unknown): %s", json_start);
             }
           } else {
             ESP_LOGW(TAG, "Could not find JSON array in Socket.IO message");
@@ -1991,4 +2026,229 @@ static esp_err_t agx_monitor_unregister_commands(void) {
 
   ESP_LOGD(TAG, "Unregistered AGX monitor console command");
   return ESP_OK;
+}
+
+/* ============================================================================
+ * Model Data Parsing Functions
+ * ============================================================================
+ */
+
+static esp_err_t agx_monitor_parse_model_status(cJSON *model_json,
+                                                agx_model_status_t *status) {
+  if (model_json == NULL || status == NULL) {
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  // Parse service name
+  cJSON *service = cJSON_GetObjectItem(model_json, "service");
+  if (cJSON_IsString(service) && service->valuestring != NULL) {
+    strncpy(status->service_name, service->valuestring,
+            sizeof(status->service_name) - 1);
+  }
+
+  // Parse model type
+  cJSON *model_type = cJSON_GetObjectItem(model_json, "model_type");
+  if (cJSON_IsString(model_type) && model_type->valuestring != NULL) {
+    strncpy(status->model_type, model_type->valuestring,
+            sizeof(status->model_type) - 1);
+  }
+
+  // Parse progress
+  cJSON *progress = cJSON_GetObjectItem(model_json, "progress");
+  if (cJSON_IsNumber(progress)) {
+    status->progress = progress->valueint;
+  }
+
+  // Parse status text
+  cJSON *status_text = cJSON_GetObjectItem(model_json, "status_text");
+  if (cJSON_IsString(status_text) && status_text->valuestring != NULL) {
+    strncpy(status->status_text, status_text->valuestring,
+            sizeof(status->status_text) - 1);
+  }
+
+  // Parse model name
+  cJSON *model_name = cJSON_GetObjectItem(model_json, "model_name");
+  if (cJSON_IsString(model_name) && model_name->valuestring != NULL) {
+    strncpy(status->model_name, model_name->valuestring,
+            sizeof(status->model_name) - 1);
+  }
+
+  // Parse API port
+  cJSON *api_port = cJSON_GetObjectItem(model_json, "api_port");
+  if (cJSON_IsString(api_port) && api_port->valuestring != NULL) {
+    strncpy(status->api_port, api_port->valuestring,
+            sizeof(status->api_port) - 1);
+  }
+
+  // Parse is_enabled
+  cJSON *is_enabled = cJSON_GetObjectItem(model_json, "is_enabled");
+  if (cJSON_IsBool(is_enabled)) {
+    status->is_enabled = cJSON_IsTrue(is_enabled);
+  }
+
+  // Parse startup_complete
+  cJSON *startup_complete = cJSON_GetObjectItem(model_json, "startup_complete");
+  if (cJSON_IsBool(startup_complete)) {
+    status->startup_complete = cJSON_IsTrue(startup_complete);
+  }
+
+  // Parse last_update
+  cJSON *last_update = cJSON_GetObjectItem(model_json, "last_update");
+  if (cJSON_IsNumber(last_update)) {
+    status->last_update = (uint64_t)last_update->valuedouble;
+  }
+
+  return ESP_OK;
+}
+
+static esp_err_t agx_monitor_parse_model_data(const char *json_data,
+                                              size_t data_len) {
+  if (json_data == NULL || data_len == 0) {
+    ESP_LOGE(TAG, "Invalid model JSON data parameters");
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  ESP_LOGD(TAG, "Parsing model JSON data (%zu bytes)", data_len);
+
+  // Parse JSON data using cJSON
+  cJSON *root = cJSON_Parse(json_data);
+  if (root == NULL) {
+    const char *error_ptr = cJSON_GetErrorPtr();
+    if (error_ptr != NULL) {
+      ESP_LOGE(TAG, "Model JSON parse error before: %s", error_ptr);
+    } else {
+      ESP_LOGE(TAG, "Failed to parse model JSON data");
+    }
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  esp_err_t ret = ESP_OK;
+
+  // Acquire mutex for data update
+  if (xSemaphoreTake(s_agx_monitor.data_mutex, pdMS_TO_TICKS(1000))) {
+    // Clear previous data
+    memset(&s_agx_monitor.latest_model_data, 0,
+           sizeof(agx_model_monitor_data_t));
+    s_agx_monitor.latest_model_data.update_time_us = esp_timer_get_time();
+
+    // Parse timestamp
+    cJSON *timestamp = cJSON_GetObjectItem(root, "timestamp");
+    if (cJSON_IsString(timestamp) && (timestamp->valuestring != NULL)) {
+      strncpy(s_agx_monitor.latest_model_data.timestamp,
+              timestamp->valuestring,
+              sizeof(s_agx_monitor.latest_model_data.timestamp) - 1);
+    }
+
+    // Parse LLM model status
+    cJSON *llm = cJSON_GetObjectItem(root, "llm");
+    if (llm != NULL) {
+      esp_err_t llm_ret = agx_monitor_parse_model_status(
+          llm, &s_agx_monitor.latest_model_data.llm);
+      if (llm_ret != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to parse LLM status: %s", esp_err_to_name(llm_ret));
+        if (ret == ESP_OK)
+          ret = llm_ret;
+      }
+    }
+
+    // Parse embedding model status
+    cJSON *embedding = cJSON_GetObjectItem(root, "embedding");
+    if (embedding != NULL) {
+      esp_err_t emb_ret = agx_monitor_parse_model_status(
+          embedding, &s_agx_monitor.latest_model_data.embedding);
+      if (emb_ret != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to parse embedding status: %s",
+                 esp_err_to_name(emb_ret));
+        if (ret == ESP_OK)
+          ret = emb_ret;
+      }
+    }
+
+    // Parse reranker model status
+    cJSON *reranker = cJSON_GetObjectItem(root, "reranker");
+    if (reranker != NULL) {
+      esp_err_t rerank_ret = agx_monitor_parse_model_status(
+          reranker, &s_agx_monitor.latest_model_data.reranker);
+      if (rerank_ret != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to parse reranker status: %s",
+                 esp_err_to_name(rerank_ret));
+        if (ret == ESP_OK)
+          ret = rerank_ret;
+      }
+    }
+
+    // Mark data as valid if parsing was successful
+    if (ret == ESP_OK) {
+      s_agx_monitor.latest_model_data.is_valid = true;
+      ESP_LOGD(TAG, "Model JSON data parsing completed successfully");
+    } else {
+      s_agx_monitor.latest_model_data.is_valid = false;
+      ESP_LOGW(TAG, "Model JSON data parsing completed with errors");
+    }
+
+    xSemaphoreGive(s_agx_monitor.data_mutex);
+  } else {
+    ESP_LOGE(TAG, "Failed to acquire mutex for model data update");
+    ret = ESP_ERR_TIMEOUT;
+  }
+
+  // Clean up JSON object
+  cJSON_Delete(root);
+
+  return ret;
+}
+
+/* ============================================================================
+ * Public API for Model Data
+ * ============================================================================
+ */
+
+esp_err_t agx_monitor_get_model_data(agx_model_monitor_data_t *data) {
+  if (!s_agx_monitor.initialized) {
+    return ESP_ERR_INVALID_STATE;
+  }
+
+  if (data == NULL) {
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  // Take mutex and copy data
+  if (xSemaphoreTake(s_agx_monitor.data_mutex, pdMS_TO_TICKS(1000))) {
+    memcpy(data, &s_agx_monitor.latest_model_data,
+           sizeof(agx_model_monitor_data_t));
+    xSemaphoreGive(s_agx_monitor.data_mutex);
+  } else {
+    ESP_LOGW(TAG, "Failed to acquire mutex for model data access");
+    return ESP_ERR_TIMEOUT;
+  }
+
+  return ESP_OK;
+}
+
+bool agx_monitor_is_model_data_valid(void) {
+  if (!s_agx_monitor.initialized) {
+    return false;
+  }
+
+  bool is_valid = false;
+  if (xSemaphoreTake(s_agx_monitor.data_mutex, pdMS_TO_TICKS(100))) {
+    is_valid = s_agx_monitor.latest_model_data.is_valid;
+
+    // Check if data is recent (within last 30 seconds)
+    if (is_valid) {
+      uint64_t current_time = esp_timer_get_time();
+      uint64_t data_age =
+          current_time - s_agx_monitor.latest_model_data.update_time_us;
+      if (data_age > 30000000) { // 30 seconds in microseconds
+        ESP_LOGD(TAG, "Model data expired: age=%llu us", data_age);
+        is_valid = false;
+      }
+    }
+
+    xSemaphoreGive(s_agx_monitor.data_mutex);
+  } else {
+    ESP_LOGD(TAG, "Failed to acquire mutex for model data validity check");
+  }
+
+  return is_valid;
 }

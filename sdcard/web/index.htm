@@ -692,6 +692,168 @@
             margin-left: 0px !important;
         }
 
+        /* 折叠功能样式 */
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 40px !important;
+        }
+
+        .collapse-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .collapse-icon.collapsed {
+            transform: translateY(-50%) rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 5000px;
+            overflow: hidden;
+            transition: max-height 0.5s ease, opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        /* 模型状态监控样式 */
+        .model-status-progress {
+            position: relative;
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .model-status-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 进度条光线滚动动画 */
+        @keyframes shimmer {
+            0% {
+                background-position: -1000px 0;
+            }
+            100% {
+                background-position: 1000px 0;
+            }
+        }
+
+        .model-status-progress-fill.loading {
+            background: linear-gradient(
+                90deg,
+                #4CAF50 0%,
+                #81C784 50%,
+                #4CAF50 100%
+            );
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite linear;
+        }
+
+        .model-status-text {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            white-space: nowrap;
+            z-index: 10;
+            min-width: 40px;
+            text-align: right;
+        }
+        
+        /* 当进度条宽度很小时，文字显示在进度条外部 */
+        .model-status-progress-fill[style*="width: 0%"] .model-status-text,
+        .model-status-progress-fill[style*="width: 1"] .model-status-text {
+            color: #666;
+            text-shadow: none;
+        }
+
+        .model-log-window {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 0;
+            overflow-y: auto;
+            transition: max-height 0.3s ease;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+
+        .model-log-window.expanded {
+            max-height: 400px; /* 温度监控高度的2倍 */
+        }
+
+        .model-log-window::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .model-log-window::-webkit-scrollbar-track {
+            background: #2d2d2d;
+            border-radius: 4px;
+        }
+
+        .model-log-window::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        .model-log-window::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        .model-log-line {
+            padding: 2px 0;
+            word-wrap: break-word;
+        }
+
+        .model-log-timestamp {
+            color: #858585;
+        }
+
+        .model-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            margin: 10px 0;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .model-section-header:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .model-section-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
         /* 版权信息样式 */
         .copyright {
             text-align: center;
@@ -753,11 +915,15 @@
 
             <!-- 推理服务器 监控部分 -->
             <div class="system-section">
-                <div class="system-header">
-                    <h2 data-translate="inference-monitoring">推理模组监控</h2>
-                    <p data-translate="nvidia-status">NVIDIA 推理服务器系统状态</p>
+                <div class="system-header collapsible-header" onclick="toggleSection('inference-section')">
+                    <div>
+                        <h2 data-translate="inference-monitoring">推理模组监控</h2>
+                        <p data-translate="nvidia-status">NVIDIA 推理服务器系统状态</p>
+                    </div>
+                    <span class="collapse-icon" id="inference-section-icon">▼</span>
                 </div>
                 
+                <div class="collapsible-content" id="inference-section">
                 <div class="dashboard">
                     <!-- 推理服务器 CPU 监控卡片 -->
                     <div class="card">
@@ -838,15 +1004,20 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- LattePanda Mu 监控部分 -->
             <div class="system-section">
-                <div class="system-header">
-                    <h2 data-translate="application-monitoring">应用模组监控</h2>
-                    <p data-translate="intel-status">Intel X86 应用服务器系统状态</p>
+                <div class="system-header collapsible-header" onclick="toggleSection('application-section')">
+                    <div>
+                        <h2 data-translate="application-monitoring">应用模组监控</h2>
+                        <p data-translate="intel-status">Intel X86 应用服务器系统状态</p>
+                    </div>
+                    <span class="collapse-icon" id="application-section-icon">▼</span>
                 </div>
             
+            <div class="collapsible-content" id="application-section">
             <div class="lpmu-dashboard">
                 <!-- 第一行：CPU、内存、系统信息 -->
                 <div class="lpmu-row-1">
@@ -925,7 +1096,100 @@
                     </div>
                 </div>
             </div>
+            </div>
         </div>
+        </div>
+
+            <!-- 模型状态监控部分 -->
+            <div class="system-section">
+                <div class="system-header collapsible-header" onclick="toggleSection('model-section')">
+                    <div>
+                        <h2 data-translate="model-monitoring">模型状态监控</h2>
+                        <p data-translate="model-status-desc">推理模型加载和运行状态</p>
+                    </div>
+                    <span class="collapse-icon" id="model-section-icon">▼</span>
+                </div>
+            
+            <div class="collapsible-content" id="model-section">
+            <div class="dashboard">
+                <!-- 模型拉起状态 -->
+                <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <div class="card-icon">🚀</div>
+                        <div class="card-title" data-translate="model-loading-status">模型拉起状态</div>
+                    </div>
+                    <div id="modelLoadingContent">
+                        <!-- 主模型 -->
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-weight: 500; color: #555;" data-translate="main-model">主模型</span>
+                            </div>
+                            <div class="model-status-progress">
+                                <div class="model-status-progress-fill" id="llm-progress" style="width: 0%;">
+                                    <span class="model-status-text" id="llm-status-text">--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 嵌入模型 -->
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-weight: 500; color: #555;" data-translate="embedding-model">嵌入模型</span>
+                            </div>
+                            <div class="model-status-progress">
+                                <div class="model-status-progress-fill" id="embedding-progress" style="width: 0%;">
+                                    <span class="model-status-text" id="embedding-status-text">--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 重排模型 -->
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-weight: 500; color: #555;" data-translate="reranker-model">重排模型</span>
+                            </div>
+                            <div class="model-status-progress">
+                                <div class="model-status-progress-fill" id="reranker-progress" style="width: 0%;">
+                                    <span class="model-status-text" id="reranker-status-text">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模型运行日志 -->
+                <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <div class="card-icon">📝</div>
+                        <div class="card-title" data-translate="model-runtime-logs">模型运行日志</div>
+                    </div>
+                    <div id="modelLogsContent">
+                        <!-- 主模型日志 -->
+                        <div class="model-section-header" onclick="toggleModelLog('llm')">
+                            <span class="model-section-title" data-translate="main-model">主模型</span>
+                            <span class="collapse-icon collapsed" id="llm-log-icon">▼</span>
+                        </div>
+                        <div class="model-log-window" id="llm-log-window"></div>
+
+                        <!-- 嵌入模型日志 -->
+                        <div class="model-section-header" onclick="toggleModelLog('embedding')">
+                            <span class="model-section-title" data-translate="embedding-model">嵌入模型</span>
+                            <span class="collapse-icon collapsed" id="embedding-log-icon">▼</span>
+                        </div>
+                        <div class="model-log-window" id="embedding-log-window"></div>
+
+                        <!-- 重排模型日志 -->
+                        <div class="model-section-header" onclick="toggleModelLog('reranker')">
+                            <span class="model-section-title" data-translate="reranker-model">重排模型</span>
+                            <span class="collapse-icon collapsed" id="reranker-log-icon">▼</span>
+                        </div>
+                        <div class="model-log-window" id="reranker-log-window"></div>
+                    </div>
+                </div>
+            </div>
+            </div>
+            </div>
+
         </div>
     </div>
 
@@ -1640,6 +1904,276 @@
             }
         }
 
+        // 折叠功能
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId);
+            const icon = document.getElementById(sectionId + '-icon');
+            
+            if (content && icon) {
+                content.classList.toggle('collapsed');
+                icon.classList.toggle('collapsed');
+                
+                // 保存折叠状态
+                const isCollapsed = content.classList.contains('collapsed');
+                localStorage.setItem(sectionId + '-collapsed', isCollapsed);
+            }
+        }
+
+        // 恢复折叠状态
+        function restoreCollapseStates() {
+            const sections = ['inference-section', 'application-section', 'model-section'];
+            sections.forEach(sectionId => {
+                const isCollapsed = localStorage.getItem(sectionId + '-collapsed') === 'true';
+                if (isCollapsed) {
+                    const content = document.getElementById(sectionId);
+                    const icon = document.getElementById(sectionId + '-icon');
+                    if (content && icon) {
+                        content.classList.add('collapsed');
+                        icon.classList.add('collapsed');
+                    }
+                }
+            });
+        }
+
+        // 切换模型日志窗口
+        function toggleModelLog(modelType) {
+            const logWindow = document.getElementById(modelType + '-log-window');
+            const icon = document.getElementById(modelType + '-log-icon');
+            
+            if (logWindow && icon) {
+                logWindow.classList.toggle('expanded');
+                icon.classList.toggle('collapsed');
+                
+                // 如果展开，立即获取日志并滚动到底部
+                if (logWindow.classList.contains('expanded')) {
+                    // 检查模型是否已启用
+                    const modelData = modelDataCache[modelType];
+                    if (modelData && modelData.is_enabled) {
+                        fetchModelLogs(modelType);
+                    }
+                    
+                    setTimeout(() => {
+                        logWindow.scrollTop = logWindow.scrollHeight;
+                    }, 300);
+                }
+            }
+        }
+
+        // 模型状态监控
+        let modelStatusCheckInterval = null;
+        let modelDataCache = {};
+
+        function startModelStatusMonitoring() {
+            // 立即检查一次
+            checkModelStatus();
+            
+            // 每2秒检查一次
+            modelStatusCheckInterval = setInterval(checkModelStatus, 2000);
+        }
+
+        function stopModelStatusMonitoring() {
+            if (modelStatusCheckInterval) {
+                clearInterval(modelStatusCheckInterval);
+                modelStatusCheckInterval = null;
+            }
+        }
+
+        async function checkModelStatus() {
+            try {
+                // 使用相对路径，自动适配当前访问的服务器地址
+                const response = await fetch('/api/model_status');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.is_valid) {
+                        updateModelStatus(data);
+                    } else {
+                        // 数据无效时显示默认状态
+                        console.debug('模型状态数据无效');
+                    }
+                }
+            } catch (error) {
+                console.error('获取模型状态失败:', error);
+            }
+        }
+
+        function updateModelStatus(data) {
+            // 更新三个模型的状态
+            updateModelProgress('llm', data.llm);
+            updateModelProgress('embedding', data.embedding);
+            updateModelProgress('reranker', data.reranker);
+            
+            // 缓存数据用于日志显示
+            modelDataCache = data;
+        }
+
+        function updateModelProgress(modelType, modelData) {
+            const progressBar = document.getElementById(modelType + '-progress');
+            const statusText = document.getElementById(modelType + '-status-text');
+            const progressContainer = progressBar?.parentElement;
+            
+            if (!progressBar || !statusText) return;
+            
+            // 如果没有有效数据，保持初始状态
+            if (!modelData) {
+                progressBar.style.width = '100%';  // 使用满宽以显示文字
+                statusText.textContent = '--';
+                progressBar.classList.remove('loading');
+                progressBar.style.background = 'linear-gradient(90deg, #E0E0E0, #BDBDBD)';
+                statusText.style.color = '#666';
+                return;
+            }
+            
+            // 计算显示进度
+            const actualProgress = modelData.progress || 0;
+            // 确保进度条至少有一定宽度以显示文字
+            const displayProgress = actualProgress > 0 ? Math.max(actualProgress, 20) : 100;
+            progressBar.style.width = displayProgress + '%';
+            
+            // 更新状态文本
+            statusText.textContent = modelData.status_text || '--';
+            
+            // 根据状态决定是否显示加载动画和颜色
+            const isLoading = actualProgress > 0 && actualProgress < 100 && modelData.is_enabled;
+            
+            if (isLoading) {
+                // 正在加载 - 使用 CSS 动画，清除 inline background 让 CSS 类生效
+                progressBar.classList.add('loading');
+                progressBar.style.background = '';  // 清除 inline style，让 CSS .loading 类生效
+                statusText.style.color = 'white';
+            } else {
+                progressBar.classList.remove('loading');
+                
+                // 设置进度条颜色和文字颜色
+                if (!modelData.is_enabled) {
+                    // 未启用 - 灰色背景
+                    progressBar.style.background = 'linear-gradient(90deg, #E0E0E0, #BDBDBD)';
+                    statusText.style.color = '#666';
+                } else if (modelData.startup_complete) {
+                    // 启动完成 - 绿色
+                    progressBar.style.background = 'linear-gradient(90deg, #4CAF50, #45a049)';
+                    statusText.style.color = 'white';
+                } else if (actualProgress === 0) {
+                    // 等待中 - 浅灰色
+                    progressBar.style.background = 'linear-gradient(90deg, #E0E0E0, #BDBDBD)';
+                    statusText.style.color = '#666';
+                } else {
+                    // 其他状态 - 默认灰色
+                    progressBar.style.background = 'linear-gradient(90deg, #BDBDBD, #9E9E9E)';
+                    statusText.style.color = 'white';
+                }
+            }
+        }
+
+        // 模型类型到翻译键的映射
+        const modelTypeToTranslationKey = {
+            'llm': 'main-model',
+            'embedding': 'embedding-model',
+            'reranker': 'reranker-model'
+        };
+        
+        // 推理服务器地址（用于获取日志）
+        const INFERENCE_SERVER_URL = 'http://10.10.99.98:58090';
+        
+        // 日志获取状态
+        const logFetchState = {
+            llm: { lastFetch: 0, enabled: false },
+            embedding: { lastFetch: 0, enabled: false },
+            reranker: { lastFetch: 0, enabled: false }
+        };
+        
+        // 更新日志窗口显示
+        function updateModelLogs() {
+            const models = ['llm', 'embedding', 'reranker'];
+            models.forEach(modelType => {
+                const logWindow = document.getElementById(modelType + '-log-window');
+                if (!logWindow) return;
+                
+                const modelData = modelDataCache[modelType];
+                
+                // 获取正确的翻译键
+                const translationKey = modelTypeToTranslationKey[modelType] || modelType;
+                const modelName = getTranslation(translationKey, modelType);
+                
+                // 如果数据还未加载，显示等待状态
+                if (!modelData) {
+                    if (logWindow.innerHTML === '') {
+                        logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[--:--:--]</span> 等待 ${modelName} 状态数据...</div>`;
+                    }
+                    return;
+                }
+                
+                // 如果未启用，显示提示
+                if (!modelData.is_enabled) {
+                    logFetchState[modelType].enabled = false;
+                    const translation = getTranslation('model-not-enabled', '未启用');
+                    logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[--:--:--]</span> ${translation}${modelName}</div>`;
+                } else {
+                    // 模型已启用，检查是否需要获取日志
+                    const isExpanded = logWindow.classList.contains('expanded');
+                    
+                    if (isExpanded && !logFetchState[modelType].enabled) {
+                        // 刚展开，开始获取日志
+                        logFetchState[modelType].enabled = true;
+                        fetchModelLogs(modelType);
+                    } else if (!isExpanded) {
+                        logFetchState[modelType].enabled = false;
+                    } else if (isExpanded && logFetchState[modelType].enabled) {
+                        // 已展开且已启用，定期刷新
+                        const now = Date.now();
+                        if (now - logFetchState[modelType].lastFetch > 5000) {  // 每5秒刷新
+                            fetchModelLogs(modelType);
+                        }
+                    }
+                    
+                    // 如果日志窗口为空或显示等待状态，显示初始提示
+                    if (logWindow.innerHTML === '' || logWindow.innerHTML.includes('未启用') || logWindow.innerHTML.includes('等待')) {
+                        const now = new Date();
+                        const timestamp = now.toTimeString().split(' ')[0];
+                        logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[${timestamp}]</span> 点击展开查看 ${modelName} 日志...</div>`;
+                    }
+                }
+            });
+        }
+        
+        // 从推理服务器获取日志
+        async function fetchModelLogs(modelType) {
+            const logWindow = document.getElementById(modelType + '-log-window');
+            if (!logWindow) return;
+            
+            try {
+                logFetchState[modelType].lastFetch = Date.now();
+                const response = await fetch(`${INFERENCE_SERVER_URL}/api/model_logs/${modelType}?lines=100`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.logs && data.logs.length > 0) {
+                        // 渲染日志
+                        const logsHtml = data.logs.map(line => 
+                            `<div class="model-log-line">${escapeHtml(line)}</div>`
+                        ).join('');
+                        logWindow.innerHTML = logsHtml;
+                        
+                        // 滚动到底部
+                        logWindow.scrollTop = logWindow.scrollHeight;
+                    } else {
+                        const translationKey = modelTypeToTranslationKey[modelType];
+                        const modelName = getTranslation(translationKey, modelType);
+                        logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[${new Date().toTimeString().split(' ')[0]}]</span> ${modelName} 暂无日志输出</div>`;
+                    }
+                }
+            } catch (error) {
+                console.debug(`获取 ${modelType} 日志失败:`, error);
+                // 不覆盖现有内容，静默失败
+            }
+        }
+        
+        // HTML 转义函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // 页面加载完成后初始化监控
         document.addEventListener('DOMContentLoaded', () => {
             // 初始化监控类并保存为全局变量以便语言切换时使用
@@ -1651,6 +2185,15 @@
             
             // 初始化语言系统
             initLanguageSystem();
+            
+            // 恢复折叠状态
+            restoreCollapseStates();
+            
+            // 启动模型状态监控
+            startModelStatusMonitoring();
+            
+            // 定期更新日志显示
+            setInterval(updateModelLogs, 3000);
         });
 
         // 语言翻译系统
@@ -1686,7 +2229,15 @@
                 'system-5v': '系统 5V',
                 'gpu-freq': '3D GPU 频率',
                 'no-gpu-data': '暂无 GPU 数据',
-                'no-memory-data': '暂无内存数据'
+                'no-memory-data': '暂无内存数据',
+                'model-monitoring': '模型状态监控',
+                'model-status-desc': '推理模型加载和运行状态',
+                'model-loading-status': '模型拉起状态',
+                'model-runtime-logs': '模型运行日志',
+                'main-model': '主模型',
+                'embedding-model': '嵌入模型',
+                'reranker-model': '重排模型',
+                'model-not-enabled': '未启用'
             },
             'en': {
                 'title': 'RM - 01 Dashboard',
@@ -1719,7 +2270,15 @@
                 'system-5v': 'System 5V',
                 'gpu-freq': '3D GPU Frequency',
                 'no-gpu-data': 'No GPU Data Available',
-                'no-memory-data': 'No Memory Data Available'
+                'no-memory-data': 'No Memory Data Available',
+                'model-monitoring': 'Model Status Monitor',
+                'model-status-desc': 'Inference Model Loading and Runtime Status',
+                'model-loading-status': 'Model Loading Status',
+                'model-runtime-logs': 'Model Runtime Logs',
+                'main-model': 'Main Model',
+                'embedding-model': 'Embedding Model',
+                'reranker-model': 'Reranker Model',
+                'model-not-enabled': 'Not Enabled'
             }
         };
 

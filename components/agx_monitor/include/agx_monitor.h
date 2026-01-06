@@ -187,6 +187,33 @@ typedef struct {
 } agx_monitor_data_t;
 
 /**
+ * @brief Model status information structure
+ */
+typedef struct {
+  char service_name[64];    ///< Service name (e.g., "dev-llm.service")
+  char model_type[16];      ///< Model type ("llm", "embedding", "reranker")
+  int progress;             ///< Startup progress (0-100)
+  char status_text[128];    ///< Status text or percentage
+  char model_name[64];      ///< Model name (e.g., "RM-01 LLM")
+  char api_port[8];         ///< API port number
+  bool is_enabled;          ///< Whether model is enabled
+  bool startup_complete;    ///< Whether startup is complete
+  uint64_t last_update;     ///< Last update timestamp
+} agx_model_status_t;
+
+/**
+ * @brief Complete model monitoring data structure
+ */
+typedef struct {
+  char timestamp[AGX_MONITOR_MAX_TIMESTAMP_LENGTH]; ///< ISO 8601 timestamp
+  agx_model_status_t llm;                           ///< LLM model status
+  agx_model_status_t embedding;                     ///< Embedding model status
+  agx_model_status_t reranker;                      ///< Reranker model status
+  bool is_valid;                                    ///< Data validity flag
+  uint64_t update_time_us;                          ///< Update timestamp in microseconds
+} agx_model_monitor_data_t;
+
+/**
  * @brief AGX monitor configuration structure
  */
 typedef struct {
@@ -357,6 +384,26 @@ esp_err_t agx_monitor_register_callback(agx_monitor_event_callback_t callback,
  * @return esp_err_t ESP_OK on success, error code on failure
  */
 esp_err_t agx_monitor_unregister_callback(void);
+
+/**
+ * @brief Get latest model monitoring data
+ *
+ * Retrieves the most recent model status data from all three models.
+ * This function is thread-safe.
+ *
+ * @param data Pointer to model data structure to fill
+ * @return esp_err_t ESP_OK on success, error code on failure
+ */
+esp_err_t agx_monitor_get_model_data(agx_model_monitor_data_t *data);
+
+/**
+ * @brief Check if model data is valid
+ *
+ * Checks if the latest model monitoring data is valid and recent.
+ *
+ * @return true if data is valid, false otherwise
+ */
+bool agx_monitor_is_model_data_valid(void);
 
 /**
  * @brief Register console commands

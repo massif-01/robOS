@@ -10,6 +10,7 @@
  */
 
 #include "web_server.h"
+#include "agx_monitor.h"
 #include "cJSON.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -206,6 +207,80 @@ static esp_err_t api_system_handler(httpd_req_t *req) {
 }
 
 /**
+ * @brief Model status API handler
+ */
+static esp_err_t api_model_status_handler(httpd_req_t *req) {
+  httpd_resp_set_type(req, "application/json");
+  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+
+  agx_model_monitor_data_t model_data;
+  esp_err_t ret = agx_monitor_get_model_data(&model_data);
+
+  if (ret != ESP_OK) {
+    cJSON *json = cJSON_CreateObject();
+    cJSON_AddStringToObject(json, "error", "Failed to get model data");
+    cJSON_AddBoolToObject(json, "is_valid", false);
+    
+    char *json_string = cJSON_Print(json);
+    if (json_string) {
+      httpd_resp_sendstr(req, json_string);
+      free(json_string);
+    }
+    cJSON_Delete(json);
+    return ESP_OK;
+  }
+
+  // Create JSON response
+  cJSON *json = cJSON_CreateObject();
+  cJSON_AddStringToObject(json, "timestamp", model_data.timestamp);
+  cJSON_AddBoolToObject(json, "is_valid", model_data.is_valid);
+
+  // Add LLM model status
+  cJSON *llm = cJSON_CreateObject();
+  cJSON_AddStringToObject(llm, "model_type", model_data.llm.model_type);
+  cJSON_AddNumberToObject(llm, "progress", model_data.llm.progress);
+  cJSON_AddStringToObject(llm, "status_text", model_data.llm.status_text);
+  cJSON_AddStringToObject(llm, "model_name", model_data.llm.model_name);
+  cJSON_AddStringToObject(llm, "api_port", model_data.llm.api_port);
+  cJSON_AddBoolToObject(llm, "is_enabled", model_data.llm.is_enabled);
+  cJSON_AddBoolToObject(llm, "startup_complete", model_data.llm.startup_complete);
+  cJSON_AddItemToObject(json, "llm", llm);
+
+  // Add embedding model status
+  cJSON *embedding = cJSON_CreateObject();
+  cJSON_AddStringToObject(embedding, "model_type", model_data.embedding.model_type);
+  cJSON_AddNumberToObject(embedding, "progress", model_data.embedding.progress);
+  cJSON_AddStringToObject(embedding, "status_text", model_data.embedding.status_text);
+  cJSON_AddStringToObject(embedding, "model_name", model_data.embedding.model_name);
+  cJSON_AddStringToObject(embedding, "api_port", model_data.embedding.api_port);
+  cJSON_AddBoolToObject(embedding, "is_enabled", model_data.embedding.is_enabled);
+  cJSON_AddBoolToObject(embedding, "startup_complete", model_data.embedding.startup_complete);
+  cJSON_AddItemToObject(json, "embedding", embedding);
+
+  // Add reranker model status
+  cJSON *reranker = cJSON_CreateObject();
+  cJSON_AddStringToObject(reranker, "model_type", model_data.reranker.model_type);
+  cJSON_AddNumberToObject(reranker, "progress", model_data.reranker.progress);
+  cJSON_AddStringToObject(reranker, "status_text", model_data.reranker.status_text);
+  cJSON_AddStringToObject(reranker, "model_name", model_data.reranker.model_name);
+  cJSON_AddStringToObject(reranker, "api_port", model_data.reranker.api_port);
+  cJSON_AddBoolToObject(reranker, "is_enabled", model_data.reranker.is_enabled);
+  cJSON_AddBoolToObject(reranker, "startup_complete", model_data.reranker.startup_complete);
+  cJSON_AddItemToObject(json, "reranker", reranker);
+
+  char *json_string = cJSON_Print(json);
+  if (json_string) {
+    httpd_resp_sendstr(req, json_string);
+    free(json_string);
+  } else {
+    httpd_resp_send_500(req);
+  }
+
+  cJSON_Delete(json);
+  return ESP_OK;
+}
+
+/**
  * @brief OPTIONS handler for CORS
  */
 static esp_err_t options_handler(httpd_req_t *req) {
@@ -259,6 +334,12 @@ esp_err_t web_server_start(void) {
                                 .handler = api_system_handler,
                                 .user_ctx = NULL};
   httpd_register_uri_handler(server, &api_system_uri);
+
+  httpd_uri_t api_model_status_uri = {.uri = "/api/model_status",
+                                      .method = HTTP_GET,
+                                      .handler = api_model_status_handler,
+                                      .user_ctx = NULL};
+  httpd_register_uri_handler(server, &api_model_status_uri);
 
   // Register OPTIONS handler for CORS
   httpd_uri_t options_uri = {.uri = "/*",
