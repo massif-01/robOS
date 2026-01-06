@@ -141,7 +141,7 @@
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(15px);
             border-radius: 20px;
-            padding: 30px;
+            padding: 20px;
             margin: 100px 0 20px 0; /* 调整上边距到100px，与Dashboard顶部对齐后保持相同间隙 */
             border: 1px solid rgba(255,255,255,0.2);
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
@@ -540,7 +540,11 @@
         }
 
         .system-section {
-            margin-bottom: 40px;
+            margin-bottom: 20px;
+        }
+
+        .system-section:last-child {
+            margin-bottom: 0;
         }
 
         .system-header {
@@ -652,11 +656,11 @@
             /* 移动端减少间距 */
             .main-panel {
                 margin: 40px 0 20px 0; /* 移动端减少上边距从100px到40px */
-                padding: 20px; /* 移动端减少内边距 */
+                padding: 15px; /* 移动端减少内边距 */
             }
 
             .system-section {
-                margin-bottom: 25px; /* 移动端减少系统区块间距从40px到25px */
+                margin-bottom: 15px; /* 移动端减少系统区块间距，保持一致 */
             }
 
             .lpmu-dashboard,
