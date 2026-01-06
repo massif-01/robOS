@@ -784,13 +784,6 @@
             min-width: 40px;
             text-align: right;
         }
-        
-        /* 当进度条宽度很小时，文字显示在进度条外部 */
-        .model-status-progress-fill[style*="width: 0%"] .model-status-text,
-        .model-status-progress-fill[style*="width: 1"] .model-status-text {
-            color: #666;
-            text-shadow: none;
-        }
 
         .model-log-window {
             background: #f8f9fa;
@@ -1980,6 +1973,9 @@
         // 模型状态监控
         let modelStatusCheckInterval = null;
         let modelDataCache = {};
+        
+        // 推理服务器地址
+        const INFERENCE_SERVER_URL = 'http://10.10.99.98:58090';
 
         function startModelStatusMonitoring() {
             // 立即检查一次
@@ -1999,7 +1995,7 @@
         async function checkModelStatus() {
             try {
                 // 直接从推理服务器获取模型状态（绕过ESP32）
-                const response = await fetch('http://10.10.99.98:58090/api/model_status');
+                const response = await fetch(`${INFERENCE_SERVER_URL}/api/model_status`);
                 if (response.ok) {
                     const data = await response.json();
                     updateModelStatus(data);
@@ -2096,9 +2092,6 @@
             }
             return text;
         }
-        
-        // 推理服务器地址（用于获取日志）
-        const INFERENCE_SERVER_URL = 'http://10.10.99.98:58090';
         
         // 日志获取状态
         const logFetchState = {
