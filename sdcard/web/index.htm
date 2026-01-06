@@ -2110,7 +2110,9 @@
                 // 如果数据还未加载，显示等待状态
                 if (!modelData) {
                     if (logWindow.innerHTML === '') {
-                        logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[--:--:--]</span> 等待 ${modelName} 状态数据...</div>`;
+                        const waitingText = getTranslation('waiting-for', '等待');
+                        const statusDataText = getTranslation('status-data', '状态数据...');
+                        logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[--:--:--]</span> ${waitingText} ${modelName} ${statusDataText}</div>`;
                     }
                     return;
                 }
@@ -2139,10 +2141,12 @@
                     }
                     
                     // 如果日志窗口为空或显示等待状态，显示初始提示
-                    if (logWindow.innerHTML === '' || logWindow.innerHTML.includes('未启用') || logWindow.innerHTML.includes('等待')) {
+                    if (logWindow.innerHTML === '' || logWindow.innerHTML.includes('未启用') || logWindow.innerHTML.includes('等待') || logWindow.innerHTML.includes('Not Enabled') || logWindow.innerHTML.includes('Waiting')) {
                         const now = new Date();
                         const timestamp = now.toTimeString().split(' ')[0];
-                        logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[${timestamp}]</span> 点击展开查看 ${modelName} 日志...</div>`;
+                        const clickText = getTranslation('click-to-view-logs', '点击展开查看');
+                        const logsText = getTranslation('logs', '日志...');
+                        logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[${timestamp}]</span> ${clickText} ${modelName} ${logsText}</div>`;
                     }
                 }
             });
@@ -2171,7 +2175,8 @@
                     } else {
                         const translationKey = modelTypeToTranslationKey[modelType];
                         const modelName = getTranslation(translationKey, modelType);
-                        logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[${new Date().toTimeString().split(' ')[0]}]</span> ${modelName} 暂无日志输出</div>`;
+                        const noLogsText = getTranslation('no-logs-output', '暂无日志输出');
+                        logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[${new Date().toTimeString().split(' ')[0]}]</span> ${modelName} ${noLogsText}</div>`;
                     }
                 }
             } catch (error) {
@@ -2250,7 +2255,12 @@
                 'main-model': '主模型',
                 'embedding-model': '嵌入模型',
                 'reranker-model': '重排模型',
-                'model-not-enabled': '未启用'
+                'model-not-enabled': '未启用',
+                'waiting-for': '等待',
+                'status-data': '状态数据...',
+                'click-to-view-logs': '点击展开查看',
+                'logs': '日志...',
+                'no-logs-output': '暂无日志输出'
             },
             'en': {
                 'title': 'RM - 01 Dashboard',
@@ -2291,7 +2301,12 @@
                 'main-model': 'Main Model',
                 'embedding-model': 'Embedding Model',
                 'reranker-model': 'Reranker Model',
-                'model-not-enabled': 'Not Enabled'
+                'model-not-enabled': 'Not Enabled',
+                'waiting-for': 'Waiting for',
+                'status-data': 'status data...',
+                'click-to-view-logs': 'Click to expand',
+                'logs': 'logs...',
+                'no-logs-output': 'No logs available'
             }
         };
 
@@ -2359,6 +2374,11 @@
             } else {
                 document.title = 'Rob OS';
                 document.querySelector('meta[name="apple-mobile-web-app-title"]').content = 'RM - 01 监控面板';
+            }
+            
+            // 刷新模型日志窗口的动态文本
+            if (typeof updateModelLogs === 'function') {
+                updateModelLogs();
             }
         }
 
