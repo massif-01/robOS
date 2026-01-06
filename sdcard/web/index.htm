@@ -789,8 +789,8 @@
         }
 
         .model-log-window {
-            background: #1e1e1e;
-            color: #d4d4d4;
+            background: #f8f9fa;
+            color: #333;
             font-family: 'Courier New', monospace;
             font-size: 0.75rem;
             padding: 15px;
@@ -800,6 +800,7 @@
             transition: max-height 0.3s ease;
             margin-top: 10px;
             line-height: 1.4;
+            border: 1px solid #e9ecef;
         }
 
         .model-log-window.expanded {
@@ -811,17 +812,17 @@
         }
 
         .model-log-window::-webkit-scrollbar-track {
-            background: #2d2d2d;
+            background: #e9ecef;
             border-radius: 4px;
         }
 
         .model-log-window::-webkit-scrollbar-thumb {
-            background: #555;
+            background: #bbb;
             border-radius: 4px;
         }
 
         .model-log-window::-webkit-scrollbar-thumb:hover {
-            background: #666;
+            background: #999;
         }
 
         .model-log-line {
@@ -830,7 +831,7 @@
         }
 
         .model-log-timestamp {
-            color: #858585;
+            color: #666;
         }
 
         .model-section-header {
@@ -860,6 +861,7 @@
             position: static;
             transform: none;
             transition: transform 0.3s ease;
+            color: #4CAF50;
         }
 
         .model-section-header .collapse-icon.collapsed {
