@@ -1998,19 +1998,14 @@
 
         async function checkModelStatus() {
             try {
-                // 使用相对路径，自动适配当前访问的服务器地址
-                const response = await fetch('/api/model_status');
+                // 直接从推理服务器获取模型状态（绕过ESP32）
+                const response = await fetch('http://10.10.99.98:58090/api/model_status');
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.is_valid) {
-                        updateModelStatus(data);
-                    } else {
-                        // 数据无效时显示默认状态
-                        console.debug('模型状态数据无效');
-                    }
+                    updateModelStatus(data);
                 }
             } catch (error) {
-                console.error('获取模型状态失败:', error);
+                console.debug('获取模型状态失败:', error);
             }
         }
 
