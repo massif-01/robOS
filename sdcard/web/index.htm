@@ -2042,8 +2042,8 @@
             const displayProgress = actualProgress > 0 ? Math.max(actualProgress, 20) : 100;
             progressBar.style.width = displayProgress + '%';
             
-            // 更新状态文本
-            statusText.textContent = modelData.status_text || '--';
+            // 更新状态文本（根据语言翻译）
+            statusText.textContent = translateStatusText(modelData.status_text) || '--';
             
             // 根据状态决定是否显示加载动画和颜色
             const isLoading = actualProgress > 0 && actualProgress < 100 && modelData.is_enabled;
@@ -2083,6 +2083,19 @@
             'embedding': 'embedding-model',
             'reranker': 'reranker-model'
         };
+
+        // 翻译状态文本（模型名称和端口）
+        function translateStatusText(text) {
+            if (!text) return text;
+            if (currentLanguage === 'en') {
+                // 将中文翻译为英文
+                return text
+                    .replace('模型：', 'Model: ')
+                    .replace('端口：', 'Port: ')
+                    .replace('未启用', 'Not Enabled');
+            }
+            return text;
+        }
         
         // 推理服务器地址（用于获取日志）
         const INFERENCE_SERVER_URL = 'http://10.10.99.98:58090';
@@ -2126,27 +2139,41 @@
                     // 模型已启用，检查是否需要获取日志
                     const isExpanded = logWindow.classList.contains('expanded');
                     
-                    if (isExpanded && !logFetchState[modelType].enabled) {
-                        // 刚展开，开始获取日志
-                        logFetchState[modelType].enabled = true;
-                        fetchModelLogs(modelType);
-                    } else if (!isExpanded) {
-                        logFetchState[modelType].enabled = false;
-                    } else if (isExpanded && logFetchState[modelType].enabled) {
-                        // 已展开且已启用，定期刷新
-                        const now = Date.now();
-                        if (now - logFetchState[modelType].lastFetch > 5000) {  // 每5秒刷新
+                    if (isExpanded) {
+                        // 窗口已展开
+                        if (!logFetchState[modelType].enabled) {
+                            // 刚展开，开始获取日志
+                            logFetchState[modelType].enabled = true;
                             fetchModelLogs(modelType);
+                        } else {
+                            // 已展开且已启用，定期刷新
+                            const now = Date.now();
+                            if (now - logFetchState[modelType].lastFetch > 5000) {  // 每5秒刷新
+                                fetchModelLogs(modelType);
+                            }
                         }
-                    }
-                    
-                    // 如果日志窗口为空或显示等待状态，显示初始提示
-                    if (logWindow.innerHTML === '' || logWindow.innerHTML.includes('未启用') || logWindow.innerHTML.includes('等待') || logWindow.innerHTML.includes('Not Enabled') || logWindow.innerHTML.includes('Waiting')) {
-                        const now = new Date();
-                        const timestamp = now.toTimeString().split(' ')[0];
-                        const clickText = getTranslation('click-to-view-logs', '点击展开查看');
-                        const logsText = getTranslation('logs', '日志...');
-                        logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[${timestamp}]</span> ${clickText} ${modelName} ${logsText}</div>`;
+                        // 展开状态下不修改内容，让 fetchModelLogs 处理
+                    } else {
+                        // 窗口已折叠
+                        logFetchState[modelType].enabled = false;
+                        
+                        // 只有在折叠状态且内容为空或是占位符时，才显示提示
+                        const content = logWindow.innerHTML;
+                        const isPlaceholder = content === '' || 
+                            content.includes('点击展开') || 
+                            content.includes('Click to expand') ||
+                            content.includes('未启用') ||
+                            content.includes('Not Enabled') ||
+                            content.includes('等待') ||
+                            content.includes('Waiting');
+                        
+                        if (isPlaceholder) {
+                            const now = new Date();
+                            const timestamp = now.toTimeString().split(' ')[0];
+                            const clickText = getTranslation('click-to-view-logs', '点击展开查看');
+                            const logsText = getTranslation('logs', '日志...');
+                            logWindow.innerHTML = `<div class="model-log-line"><span class="model-log-timestamp">[${timestamp}]</span> ${clickText} ${modelName} ${logsText}</div>`;
+                        }
                     }
                 }
             });
@@ -2379,6 +2406,11 @@
             // 刷新模型日志窗口的动态文本
             if (typeof updateModelLogs === 'function') {
                 updateModelLogs();
+            }
+            
+            // 刷新模型状态文本（翻译）
+            if (modelDataCache) {
+                updateModelStatus(modelDataCache);
             }
         }
 
